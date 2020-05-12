@@ -1,0 +1,9 @@
+O : 0
+B_T : 1
+I_T : 2
+B_LOC : 3
+I_LOC : 4
+B_PER : 5
+I_PER : 6
+B_ORG : 7
+I_ORG : 8
