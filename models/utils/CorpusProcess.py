@@ -26,6 +26,7 @@ class CorpusProcess (object):
         f.close()
 
     def q_to_b(self, q_str):
+        """全角转换为半角"""
         b_str = ""
         for uchar in q_str:
             inside_code = ord(uchar)
@@ -37,6 +38,7 @@ class CorpusProcess (object):
         return b_str
 
     def process_time(self, words):
+        """整合时间序列，把所有连续出现的时间实体标记到一起"""
         pro_words = []
         index = 0
         tmp = u''
@@ -56,6 +58,7 @@ class CorpusProcess (object):
         return pro_words
 
     def process_nr(self, words):
+        """将姓和名字整合到一起"""
         pro_words = []
         index = 0
         while True:
@@ -79,6 +82,7 @@ class CorpusProcess (object):
         return pro_words
 
     def process_long(self, words):
+        """处理长的嵌套实体，采用最外层的标记"""
         pro_words = []
         index = 0
         tmp = u''
@@ -102,6 +106,7 @@ class CorpusProcess (object):
         return pro_words
 
     def pre_process(self):
+        """进行以上三项预处理并保存"""
         print("pre processing...")
         if os.path.exists(self.preprocess_corpus_path) :
             print ("pre process file is exists")
@@ -130,6 +135,7 @@ class CorpusProcess (object):
         return tag if tag else u'O'
 
     def BIO_tag(self, tag, index):
+        """根据位置选择BIO标签"""
         if index == 0 and tag != u'O':
             return u'B_{}'.format(tag)
         elif tag != u'O':
@@ -138,12 +144,14 @@ class CorpusProcess (object):
             return tag
 
     def pos_perform(self, pos):
+        """去处先验知识，如nr，np一律标为n"""
         if pos in self._map.keys() and pos != u't':
             return u'n'
         else:
             return pos
 
     def init_sequence(self, make_vocab = True):
+        """初始化词语和标签序列，并保存成特征格式，同时映射并保存词表和标签表"""
         print("init sequence...")
         lines = self.read_corpus(self.preprocess_corpus_path)
         words_list = [line.strip().split('  ')
@@ -203,6 +211,7 @@ class CorpusProcess (object):
         print("Done!")
 
     def _buile_map (self, lists) :
+        """建立词表"""
         maps = {}
         for list in lists :
             for e in list :
@@ -213,6 +222,7 @@ class CorpusProcess (object):
 
 
     def extract_feature(self, word_grams):
+        """对每一个窗口抽取特征，此处默认选择五项特征"""
         features, feature_list = [], []
         for i in range(len(word_grams)):
             for j in range(len(word_grams[i])):
@@ -230,6 +240,7 @@ class CorpusProcess (object):
         return features
 
     def segment_by_window(self, words_list=None, window=3):
+        """滑动窗口截取，大小根据特征模板而定"""
         words = []
         begin = 0
         end = window
@@ -242,6 +253,7 @@ class CorpusProcess (object):
         return words
 
     def generator(self):
+        """生成特征序列和标签"""
         print("Generatoring...")
         word_grams = [self.segment_by_window(
             word_list) for word_list in self.word_seq]
