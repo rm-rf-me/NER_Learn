@@ -3,6 +3,7 @@
     > hmm \
     ctf
 ## 结果：
+pku98语料
 * hmm:
 ![hmm](picture/hmm.png)
 * crf:
