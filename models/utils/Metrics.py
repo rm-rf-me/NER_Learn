@@ -24,12 +24,15 @@ class Metrics(object):
         self.golden_tags_counter = Counter(self.golden_tags)
 
         # 计算精确率
+        print ("cal precision...")
         self.precision_scores = self.cal_precision()
 
         # 计算召回率
+        print ("cal recall...")
         self.recall_scores = self.cal_recall()
 
         # 计算F1分数
+        print ("cal f1...")
         self.f1_scores = self.cal_f1()
 
     def cal_precision(self):
@@ -37,7 +40,7 @@ class Metrics(object):
         precision_scores = {}
         for tag in self.tagset:
             precision_scores[tag] = self.correct_tags_number.get(tag, 0) / \
-                self.predict_tags_counter[tag]
+                                    (self.predict_tags_counter[tag] + 1)
 
         return precision_scores
 
@@ -46,7 +49,7 @@ class Metrics(object):
         recall_scores = {}
         for tag in self.tagset:
             recall_scores[tag] = self.correct_tags_number.get(tag, 0) / \
-                self.golden_tags_counter[tag]
+                                 (self.golden_tags_counter[tag] + 1)
         return recall_scores
 
     def cal_f1(self):
@@ -56,7 +59,7 @@ class Metrics(object):
             f1_scores[tag] = 2*p*r / (p+r+1e-10)  # 加上一个特别小的数，防止分母为0
         return f1_scores
 
-    def report_scores(self):
+    def report_scores(self, remove_o = True):
         """将结果用表格的形式打印出来，像这个样子：
 
                       precision    recall  f1-score   support
@@ -78,7 +81,15 @@ class Metrics(object):
 
         row_format = '{:>9s}  {:>9.4f} {:>9.4f} {:>9.4f} {:>9}'
         # 打印每个标签的 精确率、召回率、f1分数
+        avg_metrics = {}
+        avg_metrics['precision'] = 0.
+        avg_metrics['recall'] = 0.
+        avg_metrics['f1_score'] = 0.
+        tot = 0
         for tag in self.tagset:
+            if remove_o == True:
+                if tag == 'O':
+                    continue
             print(row_format.format(
                 tag,
                 self.precision_scores[tag],
@@ -86,15 +97,19 @@ class Metrics(object):
                 self.f1_scores[tag],
                 self.golden_tags_counter[tag]
             ))
+            avg_metrics['precision'] += self.precision_scores[tag] * self.golden_tags_counter[tag]
+            avg_metrics['recall'] +=  self.recall_scores[tag] * self.golden_tags_counter[tag]
+            avg_metrics['f1_score'] += self.f1_scores[tag] * self.golden_tags_counter[tag]
+            tot += self.golden_tags_counter[tag]
 
         # 计算并打印平均值
-        avg_metrics = self._cal_weighted_average()
+        #avg_metrics = self._cal_weighted_average(remove_o)
         print(row_format.format(
             'avg/total',
-            avg_metrics['precision'],
-            avg_metrics['recall'],
-            avg_metrics['f1_score'],
-            len(self.golden_tags)
+            avg_metrics['precision'] / tot,
+            avg_metrics['recall'] / tot,
+            avg_metrics['f1_score'] / tot,
+            tot
         ))
 
     def count_correct_tags(self):
@@ -109,16 +124,20 @@ class Metrics(object):
 
         return correct_dict
 
-    def _cal_weighted_average(self):
+    def _cal_weighted_average(self, remove_o = True):
 
         weighted_average = {}
         total = len(self.golden_tags)
+
 
         # 计算weighted precisions:
         weighted_average['precision'] = 0.
         weighted_average['recall'] = 0.
         weighted_average['f1_score'] = 0.
         for tag in self.tagset:
+            if remove_o == True:
+                if tag == 'O':
+                    continue
             size = self.golden_tags_counter[tag]
             weighted_average['precision'] += self.precision_scores[tag] * size
             weighted_average['recall'] += self.recall_scores[tag] * size
@@ -136,10 +155,10 @@ class Metrics(object):
                          if self.golden_tags[i] == 'O']
 
         self.golden_tags = [tag for i, tag in enumerate(self.golden_tags)
-                            if i not in O_tag_indices]
+                            if tag != 'O']
 
         self.predict_tags = [tag for i, tag in enumerate(self.predict_tags)
-                             if i not in O_tag_indices]
+                             if tag != 'O']
         print("原总标记数为{}，移除了{}个O标记，占比{:.2f}%".format(
             length,
             len(O_tag_indices),
