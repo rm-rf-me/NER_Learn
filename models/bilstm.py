@@ -20,8 +20,8 @@ class BiLSTM_base (nn.Module) :
         emb = self.embedding(sents_tensor)
         packed = pack_padded_sequence(emb, lengths, batch_first=True)
         rnn_out, _ = self.bilstm(packed)
-        rnn_out, _ = pad_packed_sequence(rnn_out, batch_first=True)
-        scores = self.lin(rnn_out)
+        rnn_out, _ = pad_packed_sequence(rnn_out, batch_first=True) # rnn out: torch.Size([64, 1019, 256])
+        scores = self.lin(rnn_out)      # scores: [64, 1019, 13]
 
         return scores
 
@@ -31,13 +31,18 @@ class BiLSTM_base (nn.Module) :
         return batch_tagids
 
 class BILSTM_Model (object) :
-    def __init__(self, vocab_size, out_size):
+    def __init__(self, vocab_size, out_size, crf = False):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        self.emb_size = 128
-        self.hidden_size = 128
-        self.model = BiLSTM_base(vocab_size, self.emb_size, self.hidden_size, out_size).to(self.device)
-        self.loss_fun = cal_loss
-        self.epoches = 30
+        self.emb_size = 68
+        self.hidden_size = 68
+        self.crf = crf
+        if not crf :
+            self.model = BiLSTM_base(vocab_size, self.emb_size, self.hidden_size, out_size).to(self.device)
+            self.loss_fun = cal_loss
+        # else :
+        #     self.model = BiLSTM_CRF (vocab_size, self.emb_size, self.hidden_size, out_size).to (self.device)
+        #     self.loss_fun = cal_listm_crf_loss
+        self.epoches = 2
         self.print_step = 5
         self.lr = 0.001
         self.batch_size = 64
@@ -45,6 +50,8 @@ class BILSTM_Model (object) :
         self.step = 0
         self._best_val_loss = 1e18
         self.best_model = None
+
+
 
     def train_step (self, batch_sents, batch_tags, word2id, tag2id) :
         self.model.train()
@@ -76,12 +83,13 @@ class BILSTM_Model (object) :
             for ind in range (0, len (word_lists), B) :
                 batch_sents = word_lists[ind : ind+B]
                 batch_tags = tag_lists[ind: ind+B]
+
                 losses += self.train_step (batch_sents, batch_tags, word2id, tag2id)
 
                 if self.step % self.print_step == 0 :
                     total_step = (len (word_lists) // B + 1)
-                    print ("Epoch {}, step/total_step: {}/{} {:.2f}% Loss:{:.4f}".format(
-                        e, self.step, total_step, 100. * self.step / total_step, losses / self.print_step
+                    print ("step/total_step: {}/{} {:.2f}% Loss:{:.4f}".format(
+                         self.step, total_step, 100. * self.step / total_step, losses / self.print_step
                     ))
                     losses = 0.
             val_loss = self.validate(dev_word_lists, dev_tag_lists, word2id, tag2id)
@@ -148,3 +156,35 @@ class BILSTM_Model (object) :
         tag_lists = [tag_lists[i] for i in indices]
 
         return pred_tag_lists, tag_lists
+
+class BiSTM_CRF (nn.Module) :
+    def __init__(self, vocab_size, emb_size, hidden_size, out_size):
+        super(BiSTM_CRF, self).__init__()
+        self.bilstm = BiLSTM_base (vocab_size, emb_size, hidden_size, out_size)
+        self.transition = nn.Parameter (
+            torch.ones (out_size, out_size) * 1 / out_size
+        )
+
+    def forward(self, sents_tensor, lengths) :
+        emission = self.bilstm (sents_tensor, lengths)
+
+        batch_size, max_len, out_size = emission.size ()
+        crf_scores = emission.unsqueeze (2).expand (-1, -1, out_size, -1) + self.transition.unsqueeze(0)
+
+        return crf_scores
+
+    def test (self, sent_tensor, lengths, tag2id) :
+        start_id = tag2id['<start>']
+        end_id = tag2id['<end>']
+        pad = tag2id['<pad>']
+        tagset_size = len (tag2id)
+
+        crf_scores = self.forward(sent_tensor, lengths)
+        device = crf_scores.device
+
+        B, L, T, _ = crf_scores.size ()
+
+        viterbi = torch.zeros (B, L, T).to(device)
+        backpointer = (torch.zeros (B, L, T).long() * end_id).to (device)
+        lengths = torch.LongTensor (lengths).to (device)
+

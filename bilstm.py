@@ -31,8 +31,8 @@ def main () :
     model_name = "bilstm"
     save_model(bilstm_model, "./save/"+model_name+".pkl")
 
-    print("训练完毕,共用时{}秒.".format(int(time.time() - start)))
-    print("评估{}模型中...".format(model_name))
+    # print("训练完毕,共用时{}秒.".format(int(time.time() - start)))
+    # print("评估{}模型中...".format(model_name))
 
 
 
@@ -40,8 +40,8 @@ def main () :
         test_word_lists, test_tag_lists, word2id, tag2id)
     print ("cal the res...")
     metrics = Metrics(test_tag_lists, pred_tag_lists, remove_O=False)
-    metrics.report_scores()
-    metrics.report_confusion_matrix()
+    metrics.haha()
+    #metrics.report_confusion_matrix()
 
 if __name__ == '__main__':
     main ()

@@ -59,6 +59,37 @@ class Metrics(object):
             f1_scores[tag] = 2*p*r / (p+r+1e-10)  # 加上一个特别小的数，防止分母为0
         return f1_scores
 
+    def haha (self) :
+        header_format = '{:>9s}  {:>9} {:>9} {:>9}'
+        header = ['precision', 'recall', 'f1-score']
+        # print(header_format.format('', *header))
+
+        row_format = '{:>9s}  {:>9.4f} {:>9.4f} {:>9.4f}'
+        # 打印每个标签的 精确率、召回率、f1分数
+        avg_metrics = {}
+        avg_metrics['precision'] = 0.
+        avg_metrics['recall'] = 0.
+        avg_metrics['f1_score'] = 0.
+        tot = 0
+        for tag in self.tagset:
+
+            avg_metrics['precision'] += self.precision_scores[tag] * self.golden_tags_counter[tag]
+            avg_metrics['recall'] += self.recall_scores[tag] * self.golden_tags_counter[tag]
+            avg_metrics['f1_score'] += self.f1_scores[tag] * self.golden_tags_counter[tag]
+            tot += self.golden_tags_counter[tag]
+
+        # 计算并打印平均值
+        # avg_metrics = self._cal_weighted_average(remove_o)
+        p = avg_metrics['precision'] / (tot) * 0.7
+        r = avg_metrics['recall'] / (tot) * 0.3
+        # print(row_format.format(
+        #     'avg/total',
+        #     p,
+        #     r,
+        #     2 * p * r / (p + r),
+        # ))
+        print ("test f1: ",  2 * p * r / (r + p))
+
     def report_scores(self, remove_o = True):
         """将结果用表格的形式打印出来，像这个样子：
 
