@@ -16,22 +16,18 @@ class Dict_Base (object) :
         self.word_dict = word_dict
         self.max_len = max(map(len,[w for w in self.word_dict]))
 
-    def predict (self, seq, method='both'):
-        if method == 'both':
-            print('fmm: ', '/'.join(self._fmm(seq)))
-            print('rmm: ', '/'.join(self._rmm(seq)))
-            print('bimm: ', '/'.join(self._bimm(seq)))
-        elif method == 'fmm':
-            print('fmm: ', '/'.join(self._fmm(seq)))
+    def predict (self, seq, method='bimm'):
+        if method == 'fmm':
+            # print('fmm: ', '/'.join(self._fmm(seq)))
+            return '/'.join(self._fmm(seq))
 
         elif method == 'rmm':
-            print('rmm: ', '/'.join(self._rmm(seq)))
+            # print('rmm: ', '/'.join(self._rmm(seq)))
+            return '/'.join(self._rmm(seq))
 
         elif method == 'bimm':
-            print('bimm: ', '/'.join(self._bimm(seq)))
-
-
-
+            # print('bimm: ', '/'.join(self._bimm(seq)))
+            return '/'.join(self._bimm(seq))
 
 
     def _fmm(self, seq):
@@ -64,8 +60,8 @@ class Dict_Base (object) :
         return pre
 
     def _bimm(self, seq):
-        res_fmm = self.fmm(seq)
-        res_rmm = self.rmm(seq)
+        res_fmm = self._fmm(seq)
+        res_rmm = self._rmm(seq)
         if len(res_fmm) == len(res_rmm):
             if res_fmm == res_rmm:
                 return res_fmm
